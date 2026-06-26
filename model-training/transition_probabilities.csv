@@ -1,0 +1,6 @@
+From,Default,High-Doubtful,High-SubStd,Low,Medium
+Default,0.9816,0.0,0.0184,0.0,0.0
+High-Doubtful,0.4997,0.4547,0.0,0.0,0.0456
+High-SubStd,0.2337,0.2272,0.3957,0.1435,0.0
+Low,0.0005,0.01,0.0145,0.9105,0.0646
+Medium,0.0582,0.0076,0.1176,0.2862,0.5304

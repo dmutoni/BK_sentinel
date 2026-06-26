@@ -1,0 +1,4 @@
+risk_state,absorption_probability,expected_months_to_default,expected_years_to_default
+Low,1.0,60.96,5.08
+Medium,1.0,47.93,3.99
+High,1.0,17.53,1.46
