@@ -19,7 +19,6 @@ export default function Sidebar({ user, onLogout, months, segments, month, setMo
       {/* logo */}
       <div className="sb-logo">
         <div className="sb-logo-mark">
-          <div className="sb-logo-icon">🏦</div>
           <div>
             <div className="sb-logo-text">BK Sentinel</div>
             <div className="sb-logo-sub">Credit Risk System</div>

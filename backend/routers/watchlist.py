@@ -83,7 +83,7 @@ def watchlist(
     end         = start + page_size
     page_df     = filtered.iloc[start:end]
 
-    summary = {s: int((filtered["risk_state"] == s).sum()) for s in STATES}
+    summary = {s: int((filtered["pred"] == s).sum()) for s in STATES}
 
     records = []
     for _, row in page_df.iterrows():
@@ -93,7 +93,8 @@ def watchlist(
             "segment":        str(row.get("segment", "")),
             "risk_state":     str(row.get("risk_state", "")),
             "pred":           str(row.get("pred", "")),
-            "days_in_arrears": int(row.get("days_in_arrears", 0)),
+            "days_in_arrears":        int(row.get("days_in_arrears", 0)),
+            "instalments_in_arrears": int(row.get("instalments_in_arrears", 0)),
             "principal_balance": float(row.get("principal_balance", 0)),
             "p_default":      round(float(row.get("p_default", 0)), 4),
             "p_high":         round(float(row.get("p_high", 0)), 4),

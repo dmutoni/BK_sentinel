@@ -3,7 +3,6 @@ import { api } from '../api/client'
 import { KPICard, Loading, Empty, Pagination } from '../components/UI'
 import { Badge } from '../components/UI'
 
-const STATES  = ['Low', 'Medium', 'High', 'Default']
 const S_COLOR = { Low: '#05b96a', Medium: '#f5a623', High: '#e53e3e', Default: '#7c3aed' }
 
 const FILTERS = [
@@ -145,9 +144,7 @@ export default function Watchlist({ month, seg }) {
                         </div>
                       </td>
                       <td>
-                        <strong style={{ color: S_COLOR[r.pred] || 'var(--text-2)' }}>
-                          {r.horizon_risk}
-                        </strong>
+                        <Badge state={r.pred} />
                       </td>
                       <td style={{ fontWeight: 600, color: r.days_in_arrears > 90 ? S_COLOR.Default : r.days_in_arrears > 30 ? S_COLOR.High : r.days_in_arrears > 0 ? S_COLOR.Medium : 'var(--text-2)' }}>
                         {Math.round(r.days_in_arrears || 0)}

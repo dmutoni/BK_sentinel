@@ -26,7 +26,6 @@ export default function Login({ onLogin }) {
       {/* left panel */}
       <div className="login-left">
         <div className="login-brand">
-          <div className="login-brand-icon">🏦</div>
           <div>
             <div className="login-brand-name">BK Sentinel</div>
             <div className="login-brand-tag">Credit Risk Monitoring</div>
@@ -98,12 +97,12 @@ export default function Login({ onLogin }) {
             </button>
           </form>
 
-          <div className="lf-hint">
+          {/* <div className="lf-hint">
             Demo accounts<br />
             <strong>analyst</strong> / bk2026 &nbsp;·&nbsp;
             <strong>manager</strong> / bk2026 &nbsp;·&nbsp;
             <strong>denyse</strong> / alu2026
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

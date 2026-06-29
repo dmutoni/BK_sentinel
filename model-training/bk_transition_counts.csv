@@ -1,5 +1,5 @@
-From,Low,Medium,High,Default
-Low,40695,2323,124,125
-Medium,1728,6759,1040,9
-High,0,446,3190,1040
-Default,5,9,3,6160
+risk_state,Low,Medium,High,Default
+Low,34549,2511,77,0
+Medium,1630,6576,960,0
+High,0,260,3258,1135
+Default,0,0,275,12429
