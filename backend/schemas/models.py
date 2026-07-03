@@ -13,6 +13,13 @@ class LoginRequest(BaseModel):
     password: str = Field(..., example="bk2026")
 
 
+class SignupRequest(BaseModel):
+    username: str = Field(..., example="jdoe")
+    password: str = Field(..., example="bk2026")
+    name:     str = Field(..., example="Jane Doe")
+    role:     str = Field("Credit Analyst", example="Credit Analyst")
+
+
 class LoginResponse(BaseModel):
     token: str
     name:  str

@@ -3,12 +3,15 @@ BK Sentinel Backend — Configuration
 All paths, constants, and settings live here.
 """
 
+import os
 from pathlib import Path
 
 # ── base paths ────────────────────────────────────────────────
-# The data directory is one level up from this file (the BK_sentinel folder)
+# The data directory is one level up from this file (the BK_sentinel folder).
+# Override with the DATA_DIR env var if your deployment platform lays files
+# out differently (e.g. Railway) — local dev needs no env var at all.
 BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR.parent / "model-training"  # adjust this to point to your BK_sentinel folder
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR.parent / "model-training")))
 
 # ── data file paths ───────────────────────────────────────────
 VERIFIED_CSV        = DATA_DIR / "bk_sentinel_verified.csv"
@@ -42,6 +45,10 @@ USERS = {
     "denyse":   {"password": "alu2026", "name": "Denyse Mutoni",     "role": "Researcher"},
 }
 
+# Accounts created via /api/auth/signup are persisted here so they
+# survive a server restart. Merged into USERS on startup.
+USERS_FILE = BASE_DIR / "bk_users_store.json"
+
 # ── feature labels for SHAP explanations ─────────────────────
 FEATURE_LABELS = {
     "days_in_arrears":         "Days in arrears",
@@ -70,3 +77,12 @@ MAX_PAGE_SIZE     = 100
 
 # ── SHAP ──────────────────────────────────────────────────────
 SHAP_TOP_N_FEATURES = 5
+
+# ── CORS ──────────────────────────────────────────────────────
+# Comma-separated list via env var, e.g. on Railway:
+#   ALLOWED_ORIGINS=https://your-app.vercel.app,http://localhost:3000
+_default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]

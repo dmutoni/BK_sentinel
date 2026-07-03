@@ -2,17 +2,27 @@ import { useState } from 'react'
 import { api } from '../api/client'
 
 export default function Login({ onLogin }) {
+  const [mode,     setMode]     = useState('login') // 'login' | 'signup'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [name,     setName]     = useState('')
+  const [role,     setRole]     = useState('Credit Analyst')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
+  function toggleMode() {
+    setMode(m => (m === 'login' ? 'signup' : 'login'))
+    setError('')
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!username || !password) return
+    if (!username || !password || (mode === 'signup' && !name)) return
     setError(''); setLoading(true)
     try {
-      const data = await api.login(username, password)
+      const data = mode === 'login'
+        ? await api.login(username, password)
+        : await api.signup(username, password, name, role)
       localStorage.setItem('bk_token', data.token)
       onLogin(data)
     } catch (err) {
@@ -61,12 +71,26 @@ export default function Login({ onLogin }) {
       {/* right panel */}
       <div className="login-right">
         <div className="login-form-box">
-          <div className="lf-welcome">Welcome back</div>
-          <div className="lf-sub">Sign in to BK Sentinel</div>
+          <div className="lf-welcome">{mode === 'login' ? 'Welcome back' : 'Create an account'}</div>
+          <div className="lf-sub">
+            {mode === 'login' ? 'Sign in to BK Sentinel' : 'Sign up to start using BK Sentinel'}
+          </div>
 
           {error && <div className="lf-error">⚠ {error}</div>}
 
           <form onSubmit={handleSubmit}>
+            {mode === 'signup' && (
+              <div className="field">
+                <label className="field-label">Full name</label>
+                <input
+                  className="input"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  autoFocus
+                />
+              </div>
+            )}
             <div className="field">
               <label className="field-label">Username</label>
               <input
@@ -74,7 +98,7 @@ export default function Login({ onLogin }) {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="Enter your username"
-                autoFocus
+                autoFocus={mode === 'login'}
               />
             </div>
             <div className="field">
@@ -84,25 +108,44 @@ export default function Login({ onLogin }) {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={mode === 'login' ? 'Enter your password' : 'At least 6 characters'}
               />
             </div>
+            {mode === 'signup' && (
+              <div className="field">
+                <label className="field-label">Role</label>
+                <select
+                  className="input"
+                  value={role}
+                  onChange={e => setRole(e.target.value)}
+                >
+                  <option>Credit Analyst</option>
+                  <option>Portfolio Manager</option>
+                  <option>Researcher</option>
+                </select>
+              </div>
+            )}
             <button
               className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: 4 }}
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign in →'}
+              {loading
+                ? (mode === 'login' ? 'Signing in...' : 'Creating account...')
+                : (mode === 'login' ? 'Sign in →' : 'Create account →')}
             </button>
           </form>
 
-          {/* <div className="lf-hint">
-            Demo accounts<br />
-            <strong>analyst</strong> / bk2026 &nbsp;·&nbsp;
-            <strong>manager</strong> / bk2026 &nbsp;·&nbsp;
-            <strong>denyse</strong> / alu2026
-          </div> */}
+          <div className="lf-hint">
+            {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <span
+              onClick={toggleMode}
+              style={{ color: '#0e5fbf', fontWeight: 600, cursor: 'pointer' }}
+            >
+              {mode === 'login' ? 'Sign up' : 'Sign in'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -4,9 +4,9 @@ Handles login, logout, and current user endpoints.
 """
 
 from fastapi import APIRouter, Depends
-from schemas.models import LoginRequest, LoginResponse, UserResponse
+from schemas.models import LoginRequest, LoginResponse, SignupRequest, UserResponse
 from middleware.auth import (
-    get_current_user, issue_token, revoke_token, validate_credentials
+    create_user, get_current_user, issue_token, revoke_token, validate_credentials
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -19,6 +19,16 @@ def login(req: LoginRequest):
     Returns a bearer token to use in subsequent requests.
     """
     user  = validate_credentials(req.username, req.password)
+    token = issue_token(req.username)
+    return LoginResponse(token=token, name=user["name"], role=user["role"])
+
+
+@router.post("/signup", response_model=LoginResponse)
+def signup(req: SignupRequest):
+    """
+    Create a new account and log the user straight in.
+    """
+    user  = create_user(req.username, req.password, req.name, req.role)
     token = issue_token(req.username)
     return LoginResponse(token=token, name=user["name"], role=user["role"])
 

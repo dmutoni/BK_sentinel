@@ -19,6 +19,7 @@ API docs available at:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import ALLOWED_ORIGINS
 from routers import (
     auth_router,
     overview_router,
@@ -42,10 +43,10 @@ app = FastAPI(
     redoc_url   = "/redoc",
 )
 
-# ── CORS — allow the React frontend on port 3000 ──────────────
+# ── CORS — allow the React frontend (localhost in dev, Vercel in prod) ──
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,11 +89,20 @@ async def startup():
         get_transition_matrix,
         get_model,
         get_absorption_data,
+        get_shap_explainer,
     )
     get_portfolio_df()
     get_transition_matrix()
     get_model()
     get_absorption_data()
+    try:
+        get_shap_explainer()
+    except ImportError:
+        print("[Loader] shap not installed — SHAP explanations will be skipped.")
+    except Exception as e:
+        # Never let a SHAP build failure block the server from starting —
+        # account lookup will just fall back to building it lazily on first use.
+        print(f"[Loader] WARNING: could not pre-build SHAP explainer at startup: {e}")
     print("=" * 50)
     print("All data loaded. Server ready.")
     print("Docs: http://localhost:8000/docs")
@@ -100,5 +110,7 @@ async def startup():
 
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

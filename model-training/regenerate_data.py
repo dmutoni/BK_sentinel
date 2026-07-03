@@ -1,18 +1,27 @@
 """
-BK Sentinel — Synthetic Panel Dataset Generator (v3 — Markov-based)
-====================================================================
-Generates DPD sequences by sampling from an explicit transition matrix,
-so the empirical transition rates match the targets exactly.
+BK Sentinel — Synthetic Panel Dataset Generator (v4 — Markov + Resilience)
+============================================================================
+Same Markov-banded structure as v3, with one addition: each loan gets a
+hidden 'payment_resilience' trait (drawn once, never written to the output)
+that genuinely steers the Medium-and-High transition dice rolls, instead of
+every account in a DPD band getting an identical, undifferentiated roll.
 
-Target transition rates:
-  Low  → Medium:  ~6.0%   |  Med  → High:    ~11%
-  High → Default: ~22%    |  Default persist: ~98%
+Resilience leaves a noisy, realistic fingerprint on `all_crb` — exactly like
+a real bank, which never observes a customer's true financial resilience
+directly, only an imperfect bureau-flag proxy for it.
 
-Target Jan 2026 snapshot: Low ~62%, Med ~14%, High ~12%, Default ~12%
+Why this matters: in v3, EVERY Medium account with DPD 23-29 received the
+exact same p=[0.15, 0.60, 0.25, 0.00] regardless of any other column, which
+means no feature could ever predict which specific account crosses into
+High — the ground truth itself was generated independent of all features.
+v4 fixes this at the source while preserving the same population-level
+aggregate transition rates (resilience ~ Uniform(0,1) has mean 0.5, and
+every modulation formula below reproduces the original v3 base rate
+exactly at r=0.5).
 
 Run standalone:
-    python3 regenerate_data.py
-Then re-run notebooks 02, 03, 04 in order.
+    python3 regenerate_data_v4.py
+Then re-run notebooks 01, 02, 03, 04 in order — all four depend on this file.
 """
 
 import pandas as pd
@@ -30,61 +39,73 @@ START_DATE = datetime(2024, 10, 1)
 
 STATES = ['Low', 'Medium', 'High', 'Default']
 
-# ── DPD-dependent transition probabilities ────────────────────────────────────
-# Aggregate rates match capstone targets exactly (6% / 11% / 22% / 98%).
-# Within each band, accounts closer to the UPPER boundary are more likely
-# to deteriorate — this gives the ML model a real signal to learn from.
-#
-# Verification (weighted averages over uniform DPD within each band):
-#   Medium→High: 0.40*0% + 0.32*10% + 0.28*35% = 13% — (DPD uniform so ~11% aggregate)
-#   High→Default: 0.45*6% + 0.34*23% + 0.21*56% = 22.3% ✓
 
-def next_state(current: str, dpd: int) -> str:
+def next_state(current: str, dpd: int, resilience: float) -> str:
     """
-    Sample next risk state given current state AND current DPD value.
-    Accounts near the top of their band are more likely to deteriorate.
-    Aggregate rates across all DPD values match the target transition matrix.
+    Sample next risk state given current state, current DPD, AND the
+    loan's hidden resilience trait (0 = fragile, 1 = resilient).
+
+    Each band's probabilities are modulated so that:
+      - at resilience = 0.5 (the population mean), the result is IDENTICAL
+        to the original undifferentiated v3 rates
+      - resilient accounts (r -> 1) are pulled toward recovery
+      - fragile accounts  (r -> 0) are pulled toward deterioration
+    This makes resilience a genuine causal driver of the outcome, not a
+    label leaked in after the fact.
     """
     if current == 'Low':
-        # DPD=0: 94% of Low accounts — aggregate Low→Med target is ~6%
-        # DPD 1-3: rising signal
         if dpd == 0:
-            return np.random.choice(STATES, p=[0.943, 0.055, 0.002, 0.000])
+            base = [0.943, 0.055, 0.002, 0.000]
         elif dpd <= 1:
-            return np.random.choice(STATES, p=[0.845, 0.150, 0.005, 0.000])
+            base = [0.845, 0.150, 0.005, 0.000]
         else:
-            return np.random.choice(STATES, p=[0.690, 0.300, 0.010, 0.000])
+            base = [0.690, 0.300, 0.010, 0.000]
+        # Low is largely untouched by resilience — the jump out of Low is rare
+        # and already well-predicted by DPD itself; keep this band as-is.
+        return np.random.choice(STATES, p=base)
 
     elif current == 'Medium':
-        # Lower DPD (5-14): likely to recover or stay
-        # Mid DPD (15-22): roughly equal chance of staying or moving either way
-        # Upper DPD (23-29): high chance of tipping into High
         if dpd <= 14:
-            return np.random.choice(STATES, p=[0.200, 0.800, 0.000, 0.000])
+            base = [0.200, 0.800, 0.000, 0.000]
         elif dpd <= 22:
-            return np.random.choice(STATES, p=[0.180, 0.720, 0.100, 0.000])
+            base = [0.180, 0.720, 0.100, 0.000]
         else:
-            return np.random.choice(STATES, p=[0.150, 0.600, 0.250, 0.000])
+            base = [0.150, 0.600, 0.250, 0.000]
+
+        p_low  = min(0.97, base[0] * (2 * resilience))
+        p_high = min(0.97, base[2] * (2 * (1 - resilience)))
+        p_default = base[3]
+        p_med  = max(0.0, 1.0 - p_low - p_high - p_default)
+        probs = np.array([p_low, p_med, p_high, p_default])
+        probs = probs / probs.sum()  # guard against float drift
+        return np.random.choice(STATES, p=probs)
 
     elif current == 'High':
-        # Lower DPD (31-55): recently entered High, likely to stay or recover
-        # Mid DPD (56-75): meaningful Default risk
-        # Upper DPD (76-89): very close to Default boundary
         if dpd <= 55:
-            return np.random.choice(STATES, p=[0.000, 0.080, 0.860, 0.060])
+            base = [0.000, 0.080, 0.860, 0.060]
         elif dpd <= 75:
-            return np.random.choice(STATES, p=[0.000, 0.050, 0.720, 0.230])
+            base = [0.000, 0.050, 0.720, 0.230]
         else:
-            return np.random.choice(STATES, p=[0.000, 0.020, 0.420, 0.560])
+            base = [0.000, 0.020, 0.420, 0.560]
 
-    else:  # Default
+        p_med_recover = min(0.97, base[1] * (2 * resilience))
+        p_default     = min(0.97, base[3] * (2 * (1 - resilience)))
+        p_high_stay   = max(0.0, 1.0 - p_med_recover - p_default)
+        probs = np.array([0.0, p_med_recover, p_high_stay, p_default])
+        probs = probs / probs.sum()
+        return np.random.choice(STATES, p=probs)
+
+    else:  # Default — unchanged, matches the documented ~98% persistence
         return np.random.choice(STATES, p=[0.000, 0.000, 0.020, 0.980])
 
 
 def dpd_for_state(state: str) -> int:
     """Sample a realistic DPD value within the state's BNR range."""
     if state == 'Low':
-        return int(np.random.choice([0,0,0,0,1,2,3], p=[0.70,0.10,0.08,0.06,0.03,0.02,0.01]))
+        # BNR rule: Low = exactly 0 days in arrears. (v3 previously allowed
+        # DPD 1-3 here 30% of the time, which by strict BNR rule should be
+        # Medium, not Low — fixed.)
+        return 0
     elif state == 'Medium':
         return int(np.random.randint(5, 30))
     elif state == 'High':
@@ -92,19 +113,37 @@ def dpd_for_state(state: str) -> int:
     else:  # Default
         return int(np.random.randint(91, 280))
 
+
 def dpd_to_state(dpd: int) -> str:
     if dpd == 0:     return 'Low'
     elif dpd <= 30:  return 'Medium'
     elif dpd <= 90:  return 'High'
     else:            return 'Default'
 
+
 def dpd_to_code(dpd: int) -> int:
     return STATES.index(dpd_to_state(dpd))
 
+
+def sample_crb(resilience: float) -> int:
+    """
+    all_crb (credit bureau flag count) as a NOISY, imperfect proxy for the
+    hidden resilience trait — exactly like a real bank, which sees bureau
+    flags but never the customer's true underlying financial resilience.
+    Low resilience shifts probability mass toward more flags, but the
+    relationship is deliberately noisy, not deterministic.
+    """
+    base = np.array([0.75, 0.15, 0.07, 0.03])
+    fragility = 1.0 - resilience          # 0 = resilient, 1 = fragile
+    shift = fragility * 0.30
+    adj = base + np.array([-shift, shift * 0.40, shift * 0.40, shift * 0.20])
+    adj = np.clip(adj, 0.01, None)
+    adj = adj / adj.sum()
+    return int(np.random.choice([0, 1, 2, 3], p=adj))
+
+
 # ── Initial state distribution (Oct 2024) ─────────────────────────────────────
-# Starting heavier in Low so the final month lands near 62/14/12/12 after
-# Default absorbs some accounts over 16 months.
-INIT_DIST = np.array([0.72, 0.10, 0.09, 0.09])  # Low / Med / High / Default
+INIT_DIST = np.array([0.72, 0.10, 0.09, 0.09])
 
 # ── Loan meta distributions ───────────────────────────────────────────────────
 SEGMENTS = {
@@ -116,13 +155,16 @@ SEGMENTS = {
 }
 LOAN_TYPES = ['Personal Loan', 'Business Loan', 'Mortgage', 'Agricultural Loan', 'Staff Loan']
 
+
 def make_hash(val: str) -> str:
     return 'ANON_' + hashlib.sha256(val.encode()).hexdigest()[:8].upper()
 
+
 # ── Main generation ────────────────────────────────────────────────────────────
-print("Generating BK Sentinel synthetic panel dataset v3 (Markov-based)...")
+print("Generating BK Sentinel synthetic panel dataset v4 (Markov + Resilience)...")
 print(f"Accounts: {N_ACCOUNTS} | Months: {N_MONTHS} | Start: {START_DATE.strftime('%Y-%m')}")
 print(f"Target transitions: Low→Med 6%, Med→High 11%, High→Default 22%, Default 98%")
+print(f"NEW: per-loan resilience trait modulates Medium/High transitions; proxied via all_crb")
 
 rows = []
 
@@ -130,13 +172,22 @@ for acc_idx in range(N_ACCOUNTS):
     if acc_idx % 800 == 0:
         print(f"  Account {acc_idx + 1}/{N_ACCOUNTS}...")
 
-    # Loan meta
     segment   = np.random.choice(list(SEGMENTS.keys()), p=list(SEGMENTS.values()))
     loan_type = np.random.choice(LOAN_TYPES)
     loan_term = int(np.random.choice([12,24,36,48,60,72,84], p=[0.10,0.20,0.25,0.20,0.15,0.06,0.04]))
     disbursed = float(max(500_000, min(np.random.lognormal(13.5, 1.2), 50_000_000)))
-    rate      = float(np.random.uniform(0.12, 0.24))
-    crb       = int(np.random.choice([0, 1, 2, 3], p=[0.75, 0.15, 0.07, 0.03]))
+
+    # Hidden per-loan trait. Never written to output directly — only its
+    # noisy fingerprints on all_crb AND interest_rate are observable, same
+    # as a real bank: riskier customers get flagged by the bureau AND
+    # priced higher at origination, but neither signal alone is perfect.
+    resilience = float(np.random.uniform(0, 1))
+    crb        = sample_crb(resilience)
+
+    # interest_rate: continuous proxy, much finer resolution than the
+    # 4-bucket CRB flag. Lower resilience -> priced higher, with noise.
+    rate_center = 0.24 - resilience * 0.12          # 0.12 (resilient) .. 0.24 (fragile)
+    rate        = float(np.clip(np.random.normal(rate_center, 0.02), 0.10, 0.26))
 
     loan_age_at_start = int(np.random.randint(0, max(1, loan_term - N_MONTHS)))
     loan_id     = f"LN{100000 + acc_idx}"
@@ -144,11 +195,9 @@ for acc_idx in range(N_ACCOUNTS):
 
     monthly_instalment = (disbursed * rate / 12) / (1 - (1 + rate / 12) ** (-loan_term))
 
-    # Sample initial state then walk the Markov chain
     state = np.random.choice(STATES, p=INIT_DIST)
 
     for m_idx in range(N_MONTHS):
-        # Compute calendar month
         y      = START_DATE.year + (START_DATE.month - 1 + m_idx) // 12
         mo     = (START_DATE.month - 1 + m_idx) % 12 + 1
         obs_month = f"{y:04d}-{mo:02d}"
@@ -193,8 +242,7 @@ for acc_idx in range(N_ACCOUNTS):
             'account_status':         'ACTIVE' if state != 'Default' else 'NPL',
         })
 
-        # Advance to next state via DPD-aware Markov chain
-        state = next_state(state, dpd)
+        state = next_state(state, dpd, resilience)
 
 # ── Build dataframe ────────────────────────────────────────────────────────────
 df = pd.DataFrame(rows)
@@ -206,10 +254,9 @@ df['next_risk_state_code'] = df.groupby('loan_id')['risk_state_code'].shift(-1)
 # ── Diagnostics ────────────────────────────────────────────────────────────────
 print(f"\nDataset: {len(df):,} rows × {len(df.columns)} columns")
 print(f"Unique accounts: {df['loan_id'].nunique():,}  |  Months: {df['observation_month'].nunique()}")
-print(f"Months: {sorted(df['observation_month'].unique())}")
 
 last_month = sorted(df['observation_month'].unique())[-1]
-print(f"\n{last_month} snapshot (target: Low~62, Med~14, High~12, Default~12):")
+print(f"\n{last_month} snapshot:")
 jan = df[df['observation_month'] == last_month]
 total_jan = len(jan)
 for s in STATES:
@@ -243,4 +290,4 @@ print("  bk_sentinel_verified.csv")
 print("  bk_sentinel_transitions.csv")
 print("  bk_transition_matrix.csv")
 print("  bk_transition_counts.csv")
-print("\nNext steps: re-run notebooks 02, 03, 04 in order.")
+print("\nNext steps: re-run notebooks 01, 02, 03, 04 in order.")

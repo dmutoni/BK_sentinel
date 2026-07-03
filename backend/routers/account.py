@@ -27,10 +27,12 @@ def account_lookup(
     """
     df = get_portfolio_df()
 
-    # Search by loan_id or customer_id
+    # Search by loan_id or customer_id (literal substring match, not regex —
+    # a raw query can contain characters like "(" or "]" that would otherwise
+    # crash pandas' regex engine with re.error)
     mask = (
-        df["loan_id"].astype(str).str.contains(query, case=False, na=False) |
-        df["customer_id"].astype(str).str.contains(query, case=False, na=False)
+        df["loan_id"].astype(str).str.contains(query, case=False, na=False, regex=False) |
+        df["customer_id"].astype(str).str.contains(query, case=False, na=False, regex=False)
     )
     result = df[mask].sort_values("observation_month")
 

@@ -4,10 +4,11 @@ Simple token-based authentication for the API.
 Tokens are stored in memory and issued on login.
 """
 
+import json
 import secrets
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from config import USERS
+from config import USERS, USERS_FILE
 
 # ── token store ───────────────────────────────────────────────
 # Maps token string → user dict
@@ -15,6 +16,25 @@ from config import USERS
 _token_store: dict[str, dict] = {}
 
 security = HTTPBearer(auto_error=False)
+
+
+def _load_persisted_users() -> None:
+    """Merge any previously signed-up accounts (bk_users_store.json) into USERS."""
+    if USERS_FILE.exists():
+        try:
+            with open(USERS_FILE, "r") as f:
+                USERS.update(json.load(f))
+        except Exception as e:
+            print(f"[Auth] WARNING: could not read {USERS_FILE.name}: {e}")
+
+
+def _persist_users() -> None:
+    """Write the current USERS dict to disk so signups survive a restart."""
+    with open(USERS_FILE, "w") as f:
+        json.dump(USERS, f, indent=2)
+
+
+_load_persisted_users()
 
 
 def issue_token(username: str) -> str:
@@ -55,4 +75,26 @@ def validate_credentials(username: str, password: str) -> dict:
     user = USERS.get(username)
     if not user or user["password"] != password:
         raise HTTPException(status_code=401, detail="Incorrect username or password.")
+    return user
+
+
+def create_user(username: str, password: str, name: str, role: str) -> dict:
+    """
+    Register a new account. Raises 400 if the username is taken or
+    the input is invalid. Persists the new account to disk.
+    """
+    username = (username or "").strip()
+    password = (password or "").strip()
+    name = (name or "").strip() or username
+
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    if username in USERS:
+        raise HTTPException(status_code=400, detail="That username is already taken.")
+
+    user = {"password": password, "name": name, "role": role or "Credit Analyst"}
+    USERS[username] = user
+    _persist_users()
     return user

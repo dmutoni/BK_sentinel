@@ -1,0 +1,4 @@
+{
+  "high_risk_threshold": 0.25,
+  "rationale": "Tuned to raise recall on accounts crossing from Medium into High risk, which the default argmax rule almost never catches. Matches the Watchlist convention of P(Default) > 25%% for about_to_default."
+}

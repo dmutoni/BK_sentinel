@@ -4,7 +4,7 @@ Generates local and global SHAP explanations for the Random Forest model.
 """
 
 import numpy as np
-from database.loader import get_model
+from database.loader import get_model, get_shap_explainer
 from config import FEATURE_LABELS, SHAP_TOP_N_FEATURES
 
 
@@ -21,10 +21,9 @@ def explain_prediction(X_row: np.ndarray, pred_class_idx: int) -> list:
         Positive SHAP = pushes toward pred_class. Negative = pushes away.
     """
     try:
-        import shap
         model, encoders, features = get_model()
 
-        explainer   = shap.TreeExplainer(model)
+        explainer   = get_shap_explainer()
         shap_values = explainer.shap_values(X_row.reshape(1, -1))
 
         # Handle both old (list) and new (3D array) SHAP output formats
@@ -61,7 +60,6 @@ def explain_batch_default(X_batch: np.ndarray, n_samples: int = 100) -> list:
     Returns list of {feature, importance} sorted by importance descending.
     """
     try:
-        import shap
         model, encoders, features = get_model()
 
         # Sample for performance
@@ -69,7 +67,7 @@ def explain_batch_default(X_batch: np.ndarray, n_samples: int = 100) -> list:
             idx = np.random.choice(len(X_batch), n_samples, replace=False)
             X_batch = X_batch[idx]
 
-        explainer   = shap.TreeExplainer(model)
+        explainer   = get_shap_explainer()
         shap_values = explainer.shap_values(X_batch)
 
         # Get Default class SHAP values (index 3)
