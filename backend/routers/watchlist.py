@@ -98,6 +98,7 @@ def watchlist(
             "principal_balance": float(row.get("principal_balance", 0)),
             "p_default":      round(float(row.get("p_default", 0)), 4),
             "p_high":         round(float(row.get("p_high", 0)), 4),
+            "p_pred":         round(float(row.get("p_pred", 0)), 4),
             "score":          round(float(row.get("score", 0)), 4),
             "is_worse":       bool(row.get("is_worse", False)),
         })

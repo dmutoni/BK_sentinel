@@ -90,22 +90,13 @@ def get_model():
     return _cache["model"], _cache["encoders"], _cache["features"]
 
 
-def get_shap_explainer():
-    """
-    Build and cache the SHAP TreeExplainer once.
-    Building this from scratch is expensive (walks every tree in the
-    forest) — doing it on every account-lookup request is what makes
-    the endpoint feel like it hangs. Cache it after the first build.
-    """
-    if "explainer" not in _cache:
-        import time
-        import shap
-        model, _, _ = get_model()
-        print("[Loader] Building SHAP TreeExplainer (first call only, may take a while)...")
-        t0 = time.time()
-        _cache["explainer"] = shap.TreeExplainer(model)
-        print(f"[Loader] SHAP explainer ready in {time.time() - t0:.1f}s.")
-    return _cache["explainer"]
+# NOTE: we used to build a shap.TreeExplainer here and cache it, but the
+# `shap` package's native TreeExplainer segfaults against this model on
+# some machines (a hard crash in its numba/llvmlite dependency that no
+# Python try/except can catch). services/shap_service.py now computes the
+# same Tree SHAP values using XGBoost's own built-in
+# Booster.predict(..., pred_contribs=True) instead, which needs no
+# extra explainer object and has no numba dependency.
 
 
 def get_absorption_data():

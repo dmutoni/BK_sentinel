@@ -127,7 +127,7 @@ export default function Watchlist({ month, seg }) {
                     <th>Risk in {horizon}m</th>
                     <th>Days in Arrears</th>
                     <th>Instalments Missed</th>
-                    <th>P(Default)</th>
+                    <th>Confidence</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -151,8 +151,8 @@ export default function Watchlist({ month, seg }) {
                       </td>
                       <td>{Math.round(r.instalments_in_arrears || 0)}</td>
                       <td>
-                        <strong style={{ color: S_COLOR.Default }}>
-                          {((r.p_default || 0) * 100).toFixed(1)}%
+                        <strong style={{ color: S_COLOR[r.pred] || S_COLOR.Default }}>
+                          {((r.p_pred ?? r.p_default ?? 0) * 100).toFixed(1)}%
                         </strong>
                       </td>
                     </tr>

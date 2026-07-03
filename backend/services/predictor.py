@@ -116,6 +116,18 @@ def predict_batch(df: pd.DataFrame) -> pd.DataFrame:
     df["p_default"] = proba[:, 3]
     df["score"]     = df["p_default"] + df["p_high"]
 
+    # Probability the model assigned to its OWN predicted next state.
+    # For a Low→Medium row, p_default is trivially ~0 (a Low account isn't
+    # about to Default) — that's correct but useless as a "how confident is
+    # this warning" number. p_pred instead shows confidence in whatever the
+    # model actually predicted (P(Medium) for a Low→Medium row, P(Default)
+    # for a High→Default row, etc.), so it's meaningful across every filter.
+    df["p_pred"] = np.select(
+        [df["pred"] == "Low", df["pred"] == "Medium", df["pred"] == "High", df["pred"] == "Default"],
+        [df["p_low"],          df["p_medium"],          df["p_high"],         df["p_default"]],
+        default=0.0,
+    )
+
     # Deterioration flag
     df["cur_rank"]  = df["risk_state"].map(STATE_ORDER)
     df["pred_rank"] = df["pred"].map(STATE_ORDER)

@@ -76,7 +76,7 @@ function AIPrediction({ pred }) {
             })}
           </div>
         ) : (
-          <InfoBox>Install the shap library to see explanations: pip install shap</InfoBox>
+          <InfoBox>No explanation available for this account.</InfoBox>
         )}
       </div>
     </div>

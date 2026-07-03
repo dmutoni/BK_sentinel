@@ -89,20 +89,11 @@ async def startup():
         get_transition_matrix,
         get_model,
         get_absorption_data,
-        get_shap_explainer,
     )
     get_portfolio_df()
     get_transition_matrix()
     get_model()
     get_absorption_data()
-    try:
-        get_shap_explainer()
-    except ImportError:
-        print("[Loader] shap not installed — SHAP explanations will be skipped.")
-    except Exception as e:
-        # Never let a SHAP build failure block the server from starting —
-        # account lookup will just fall back to building it lazily on first use.
-        print(f"[Loader] WARNING: could not pre-build SHAP explainer at startup: {e}")
     print("=" * 50)
     print("All data loaded. Server ready.")
     print("Docs: http://localhost:8000/docs")
