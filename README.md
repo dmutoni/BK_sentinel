@@ -12,6 +12,8 @@ BK Sentinel predicts which loan accounts are heading toward default _before_ it 
 | **Live app**    | Backend: `[backend](https://bk-sentinel.onrender.com)` · Frontend: `[Frontend](https://vercel.com/dmutonis-projects/bk-sentinel)` |
 | **Demo video**  | `[Video](https://vimeo.com/1206877116)`                                                                                           |
 
+| **Long Video** | `[Video](https://vimeo.com/1206874760?fl=ip&fe=ec)` |
+
 ---
 
 ## Table of Contents
@@ -72,7 +74,7 @@ The result is a decision-support dashboard, not an automated approval/rejection 
 | **REST**                      | Representational State Transfer — the architectural style used by the FastAPI backend's HTTP endpoints                                                                                                                                                                                                  |
 | **F1 / Macro F1**             | A classification accuracy metric balancing precision and recall; "macro" means it's averaged equally across all four risk classes regardless of how common each one is                                                                                                                                  |
 | **SHAP**                      | SHapley Additive exPlanations — a method for explaining _why_ a model made a specific prediction, by attributing the prediction to individual input features                                                                                                                                            |
-| **SMOTE**                     | Synthetic Minority Over-sampling Technique — generates synthetic examples of rare classes (e.g. High/Default accounts) so the model doesn't just learn to predict "Low risk" for everyone                                                                                                               |
+| **SMOTE**                     | Minority Over-sampling Technique — generates examples of rare classes (e.g. High/Default accounts) so the model doesn't just learn to predict "Low risk" for everyone                                                                                                                                   |
 | **LCY**                       | Local Currency (Rwandan Francs, RWF, in this dataset)                                                                                                                                                                                                                                                   |
 | **RWF**                       | Rwandan Franc                                                                                                                                                                                                                                                                                           |
 | **ISIC**                      | International Standard Industrial Classification — the coding system used for the customer's industry sector                                                                                                                                                                                            |
