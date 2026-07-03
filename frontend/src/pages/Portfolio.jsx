@@ -71,7 +71,7 @@ export default function Portfolio({ month, seg }) {
           <div style={{ marginBottom: 16 }}>
             <div className="field-label">Months ahead</div>
             <select className="select" value={horizon} onChange={e => setHorizon(+e.target.value)}>
-              {[1, 2, 3, 6, 9, 12].map(h => (
+              {[1, 2, 3, 6].map(h => (
                 <option key={h} value={h}>{h} month{h > 1 ? 's' : ''}</option>
               ))}
             </select>
@@ -93,7 +93,7 @@ export default function Portfolio({ month, seg }) {
       {portfolio && (
         <div className="card">
           <div className="card-header">
-            <div className="card-title">Portfolio Risk Distribution Forecast — Next 12 Months</div>
+            <div className="card-title">Portfolio Risk Distribution Forecast — Next 6 Months</div>
           </div>
           <div className="tbl-wrap">
             <table>
@@ -104,7 +104,7 @@ export default function Portfolio({ month, seg }) {
                 </tr>
               </thead>
               <tbody>
-                {[0, 3, 6, 12].map(n => {
+                {[0, 3, 6].map(n => {
                   const row = portfolio[n]
                   return row ? (
                     <tr key={n}>

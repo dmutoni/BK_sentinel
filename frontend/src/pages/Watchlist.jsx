@@ -90,7 +90,7 @@ export default function Watchlist({ month, seg }) {
             <div className="field-label">Risk horizon</div>
             <select className="select" value={horizon}
               onChange={e => { setHorizon(+e.target.value); setPage(1) }}>
-              {[1, 2, 3, 6, 12].map(h => (
+              {[1, 2, 3, 6].map(h => (
                 <option key={h} value={h}>{h} month{h > 1 ? 's' : ''} from now</option>
               ))}
             </select>

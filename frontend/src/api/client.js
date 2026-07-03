@@ -38,7 +38,7 @@ export const api = {
   // transition
   matrix:             ()                           => request('/transition/matrix'),
   forecast:           (horizon)                    => request(`/transition/forecast?horizon=${horizon}`),
-  portfolioForecast:  (month, segment, horizon=12) => request(`/transition/portfolio-forecast?month=${month}&segment=${encodeURIComponent(segment)}&horizon=${horizon}`),
+  portfolioForecast:  (month, segment, horizon=6) => request(`/transition/portfolio-forecast?month=${month}&segment=${encodeURIComponent(segment)}&horizon=${horizon}`),
 
   // absorption
   absorption: () => request('/absorption/summary'),

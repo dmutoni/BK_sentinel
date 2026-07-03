@@ -57,7 +57,7 @@ def forecast(
 def portfolio_forecast(
     month:   str,
     segment: str = "All Segments",
-    horizon: int = 12,
+    horizon: int = 6,
     user:    dict = Depends(get_current_user),
 ):
     """
