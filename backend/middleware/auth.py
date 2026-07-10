@@ -78,7 +78,7 @@ def validate_credentials(username: str, password: str) -> dict:
     return user
 
 
-def create_user(username: str, password: str, name: str, role: str) -> dict:
+def create_user(username: str, password: str, name: str, role: str = "Credit Analyst") -> dict:
     """
     Register a new account. Raises 400 if the username is taken or
     the input is invalid. Persists the new account to disk.

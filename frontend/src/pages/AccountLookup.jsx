@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { Badge, Loading, InfoBox, Empty } from '../components/UI'
 
@@ -118,23 +119,39 @@ function PaymentHistory({ history }) {
 }
 
 export default function AccountLookup() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [query,   setQuery]   = useState('')
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [tab,     setTab]     = useState('behaviour')
 
-  async function handleSearch(e) {
-    e.preventDefault()
-    if (!query.trim()) return
+  const runLookup = useCallback(async (id) => {
+    if (!id || !id.trim()) return
     setLoading(true); setError(''); setData(null)
     try {
-      const d = await api.account(query.trim())
+      const d = await api.account(id.trim())
       setData(d); setTab('behaviour')
     } catch (err) {
       setError(err.message)
     }
     setLoading(false)
+  }, [])
+
+  // auto-load when arriving with ?id=... (e.g. clicking a Watchlist row)
+  useEffect(() => {
+    const id = searchParams.get('id')
+    if (id) { setQuery(id); runLookup(id) }
+  }, [searchParams, runLookup])
+
+  function handleSearch(e) {
+    e.preventDefault()
+    const id = query.trim()
+    if (!id) return
+    // drive the lookup through the URL so it stays shareable and back-button friendly.
+    // if the id is unchanged the URL won't refire the effect, so fetch directly.
+    if (searchParams.get('id') === id) runLookup(id)
+    else setSearchParams({ id })
   }
 
   const acc  = data?.account
@@ -166,7 +183,7 @@ export default function AccountLookup() {
       </div>
 
       {loading && <Loading text="Fetching account details..." />}
-      {error   && <InfoBox>{error}</InfoBox>}
+      {error && !data && !loading && <InfoBox>{error}</InfoBox>}
 
       {!data && !loading && !error && (
         <div className="card" style={{ padding: 0 }}>

@@ -6,7 +6,6 @@ export default function Login({ onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [name,     setName]     = useState('')
-  const [role,     setRole]     = useState('Credit Analyst')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
@@ -22,7 +21,7 @@ export default function Login({ onLogin }) {
     try {
       const data = mode === 'login'
         ? await api.login(username, password)
-        : await api.signup(username, password, name, role)
+        : await api.signup(username, password, name)
       localStorage.setItem('bk_token', data.token)
       onLogin(data)
     } catch (err) {
@@ -111,20 +110,6 @@ export default function Login({ onLogin }) {
                 placeholder={mode === 'login' ? 'Enter your password' : 'At least 6 characters'}
               />
             </div>
-            {mode === 'signup' && (
-              <div className="field">
-                <label className="field-label">Role</label>
-                <select
-                  className="input"
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                >
-                  <option>Credit Analyst</option>
-                  <option>Portfolio Manager</option>
-                  <option>Researcher</option>
-                </select>
-              </div>
-            )}
             <button
               className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: 4 }}

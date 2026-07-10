@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    {
+      "name": "bk-frontend",
+      "runtimeExecutable": "/Users/df-9/.nvm/versions/node/v20.16.0/bin/node",
+      "runtimeArgs": [
+        "/Users/df-9/Documents/ALU/BK_sentinel/frontend/node_modules/vite/bin/vite.js",
+        "/Users/df-9/Documents/ALU/BK_sentinel/frontend"
+      ],
+      "autoPort": true,
+      "port": 3000
+    }
+  ]
+}

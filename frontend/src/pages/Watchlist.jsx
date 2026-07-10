@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { KPICard, Loading, Empty, Pagination } from '../components/UI'
 import { Badge } from '../components/UI'
@@ -20,6 +21,7 @@ const FILTERS = [
 ]
 
 export default function Watchlist({ month, seg }) {
+  const navigate = useNavigate()
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(false)
   const [filter,  setFilter]  = useState('all_deteriorating')
@@ -132,7 +134,10 @@ export default function Watchlist({ month, seg }) {
                 </thead>
                 <tbody>
                   {data.records.map((r, i) => (
-                    <tr key={i}>
+                    <tr key={i}
+                      onClick={() => navigate(`/lookup?id=${encodeURIComponent(r.loan_id)}`)}
+                      style={{ cursor: 'pointer' }}
+                      title={`View full details for ${r.loan_id}`}>
                       <td className="td-primary">{r.loan_id}</td>
                       <td className="td-mono">{(r.customer_id || '').substring(0, 18)}</td>
                       <td>{r.segment}</td>

@@ -28,7 +28,7 @@ def signup(req: SignupRequest):
     """
     Create a new account and log the user straight in.
     """
-    user  = create_user(req.username, req.password, req.name, req.role)
+    user  = create_user(req.username, req.password, req.name)
     token = issue_token(req.username)
     return LoginResponse(token=token, name=user["name"], role=user["role"])
 
