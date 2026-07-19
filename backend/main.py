@@ -84,6 +84,12 @@ async def startup():
     print("=" * 50)
     print("BK Sentinel Backend Starting Up")
     print("=" * 50)
+
+    # initialise the users database (creates the table + seeds built-in accounts)
+    from database.db import init_db
+    init_db()
+    print("[DB] Users database ready.")
+
     from database.loader import (
         get_portfolio_df,
         get_transition_matrix,

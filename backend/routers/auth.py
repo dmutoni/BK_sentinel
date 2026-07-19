@@ -19,7 +19,7 @@ def login(req: LoginRequest):
     Returns a bearer token to use in subsequent requests.
     """
     user  = validate_credentials(req.username, req.password)
-    token = issue_token(req.username)
+    token = issue_token(user)
     return LoginResponse(token=token, name=user["name"], role=user["role"])
 
 
@@ -29,7 +29,7 @@ def signup(req: SignupRequest):
     Create a new account and log the user straight in.
     """
     user  = create_user(req.username, req.password, req.name)
-    token = issue_token(req.username)
+    token = issue_token(user)
     return LoginResponse(token=token, name=user["name"], role=user["role"])
 
 

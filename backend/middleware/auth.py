@@ -1,46 +1,34 @@
 """
 BK Sentinel — Authentication Middleware
-Simple token-based authentication for the API.
-Tokens are stored in memory and issued on login.
+=======================================
+Token-based auth backed by the users database (see database/db.py).
+
+  • Passwords are stored HASHED (bcrypt) — never in plaintext.
+  • Accounts live in the database, so signups persist across restarts
+    and redeploys (when DATABASE_URL points at Postgres).
+  • Tokens are kept in memory and re-issued on login; a restart simply
+    means users log in again.
 """
 
-import json
 import secrets
-from fastapi import HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from config import USERS, USERS_FILE
+
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from database.db import SessionLocal, User, hash_password, verify_password
 
 # ── token store ───────────────────────────────────────────────
-# Maps token string → user dict
-# In production this would be a Redis store or JWT
+# Maps token string → public user dict {username, name, role}.
+# In production this would be a Redis store or JWT.
 _token_store: dict[str, dict] = {}
 
 security = HTTPBearer(auto_error=False)
 
 
-def _load_persisted_users() -> None:
-    """Merge any previously signed-up accounts (bk_users_store.json) into USERS."""
-    if USERS_FILE.exists():
-        try:
-            with open(USERS_FILE, "r") as f:
-                USERS.update(json.load(f))
-        except Exception as e:
-            print(f"[Auth] WARNING: could not read {USERS_FILE.name}: {e}")
-
-
-def _persist_users() -> None:
-    """Write the current USERS dict to disk so signups survive a restart."""
-    with open(USERS_FILE, "w") as f:
-        json.dump(USERS, f, indent=2)
-
-
-_load_persisted_users()
-
-
-def issue_token(username: str) -> str:
-    """Generate a new token for the given username."""
+def issue_token(user: dict) -> str:
+    """Generate a new token for an authenticated user."""
     token = secrets.token_hex(32)
-    _token_store[token] = {"username": username, **USERS[username]}
+    _token_store[token] = dict(user)
     return token
 
 
@@ -57,7 +45,6 @@ def get_current_user(
     """
     FastAPI dependency — validates the bearer token.
     Raises 401 if the token is missing or invalid.
-    Usage: user = Depends(get_current_user)
     """
     if not credentials:
         raise HTTPException(status_code=401, detail="Authentication required. Please log in.")
@@ -69,19 +56,20 @@ def get_current_user(
 
 def validate_credentials(username: str, password: str) -> dict:
     """
-    Validate username and password against the user store.
-    Returns the user dict if valid, raises 401 otherwise.
+    Validate username and password against the database.
+    Returns the public user dict if valid, raises 401 otherwise.
     """
-    user = USERS.get(username)
-    if not user or user["password"] != password:
-        raise HTTPException(status_code=401, detail="Incorrect username or password.")
-    return user
+    with SessionLocal() as db:
+        user = db.get(User, (username or "").strip())
+        if not user or not verify_password(password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Incorrect username or password.")
+        return user.public()
 
 
 def create_user(username: str, password: str, name: str, role: str = "Credit Analyst") -> dict:
     """
-    Register a new account. Raises 400 if the username is taken or
-    the input is invalid. Persists the new account to disk.
+    Register a new account with a hashed password. Raises 400 if the
+    username is taken or the input is invalid. Returns the public user dict.
     """
     username = (username or "").strip()
     password = (password or "").strip()
@@ -91,10 +79,16 @@ def create_user(username: str, password: str, name: str, role: str = "Credit Ana
         raise HTTPException(status_code=400, detail="Username and password are required.")
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
-    if username in USERS:
-        raise HTTPException(status_code=400, detail="That username is already taken.")
 
-    user = {"password": password, "name": name, "role": role or "Credit Analyst"}
-    USERS[username] = user
-    _persist_users()
-    return user
+    with SessionLocal() as db:
+        if db.get(User, username) is not None:
+            raise HTTPException(status_code=400, detail="That username is already taken.")
+        user = User(
+            username      = username,
+            name          = name,
+            role          = role or "Credit Analyst",
+            password_hash = hash_password(password),
+        )
+        db.add(user)
+        db.commit()
+        return user.public()

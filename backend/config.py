@@ -39,15 +39,15 @@ DPD_MEDIUM  = 30
 DPD_HIGH    = 90
 
 # ── auth ──────────────────────────────────────────────────────
+# Built-in accounts, seeded into the users database on first startup
+# (see database/db.py -> init_db). Passwords here are plaintext seeds;
+# they are hashed with bcrypt before being written to the database.
+# Accounts created via /api/auth/signup are stored directly in the database.
 USERS = {
     "analyst":  {"password": "bk2026",  "name": "Credit Analyst",   "role": "Credit Analyst"},
     "manager":  {"password": "bk2026",  "name": "Portfolio Manager", "role": "Portfolio Manager"},
     "denyse":   {"password": "alu2026", "name": "Denyse Mutoni",     "role": "Researcher"},
 }
-
-# Accounts created via /api/auth/signup are persisted here so they
-# survive a server restart. Merged into USERS on startup.
-USERS_FILE = BASE_DIR / "bk_users_store.json"
 
 # ── feature labels for SHAP explanations ─────────────────────
 FEATURE_LABELS = {

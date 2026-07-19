@@ -6,7 +6,7 @@ backend/.venv/
 
 # Node / frontend build output
 node_modules/
-bk-sentinel/dist/
+frontend/dist/
 
 # OS / editor cruft
 .DS_Store
@@ -19,3 +19,6 @@ bk-sentinel/dist/
 # Signup accounts persisted at runtime — don't commit dev/test accounts.
 # Remove this line if you want them versioned.
 backend/bk_users_store.json
+
+# Local SQLite database (used when DATABASE_URL is unset; Postgres in prod)
+backend/*.db
